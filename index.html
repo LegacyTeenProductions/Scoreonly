@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Standalone Runs Tracker</title>
+    <title>Standalone Score & Count Tracker</title>
     <style>
         /* --- CORE STANDALONE IPAD OPTIMIZATIONS --- */
         * {
@@ -56,6 +56,38 @@
             border: 1px solid #2d2d2d;
             min-width: 55px;
             text-align: center;
+        }
+
+        /* Clean 3-column data row added safely below team entries */
+        .data-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .data-box {
+            background-color: #181818;
+            border: 1px solid #2d2d2d;
+            border-radius: 8px;
+            padding: 8px 4px;
+        }
+
+        .data-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .data-value {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffcc00;
+            font-family: 'Impact', 'Arial Black', sans-serif;
         }
 
 
@@ -125,8 +157,16 @@
 
         button.plus-run { background: #2e7d32; box-shadow: 0 4px 0 #1b5e20; }
         button.plus-run:active { box-shadow: 0 2px 0 #1b5e20; }
+        button.plus-ball { background: #5e35b1; box-shadow: 0 4px 0 #4527a0; }
+        button.plus-ball:active { box-shadow: 0 2px 0 #4527a0; }
+        button.plus-strike { background: #1565c0; box-shadow: 0 4px 0 #0d47a1; }
+        button.plus-strike:active { box-shadow: 0 2px 0 #0d47a1; }
+        button.plus-out { background: #ef6c00; box-shadow: 0 4px 0 #b30000; }
+        button.plus-out:active { box-shadow: 0 2px 0 #b30000; }
         button.sub-btn { background: #c62828; box-shadow: 0 4px 0 #8e1c1c; padding: 12px 10px; font-size: 14px;}
         button.sub-btn:active { box-shadow: 0 2px 0 #8e1c1c; }
+        button.clear-btn { background: #4f5b66; box-shadow: 0 4px 0 #343d46; padding: 12px 10px; font-size: 14px;}
+        button.clear-btn:active { box-shadow: 0 2px 0 #343d46; }
     </style>
 </head>
 <body>
@@ -140,6 +180,22 @@
         <div class="team-line" style="color: #3399ff;">
             <span>HOME: <span id="bugHome">TEAM B</span></span>
             <span class="run-digit" id="dispHomeRuns">0</span>
+        </div>
+
+        <!-- Safe data row to show the stats cleanly -->
+        <div class="data-row">
+            <div class="data-box">
+                <div class="data-label">Balls</div>
+                <div class="data-value" id="dispBalls">0</div>
+            </div>
+            <div class="data-box">
+                <div class="data-label">Strikes</div>
+                <div class="data-value" id="dispStrikes">0</div>
+            </div>
+            <div class="data-box">
+                <div class="data-label">Outs</div>
+                <div class="data-value" id="dispOuts">0</div>
+            </div>
         </div>
     </div>
 
@@ -157,17 +213,40 @@
         <div class="panel-section">
             <h3 style="color: #ff4d4d;">Away Team Runs</h3>
             <div class="btn-row">
-                <button class="plus-run" onclick="adjustRuns('awayRuns', 1)">+1 Run</button>
-                <button class="sub-btn" onclick="adjustRuns('awayRuns', -1)">-1 Run</button>
+                <button class="plus-run" onclick="adjustState('awayRuns', 1)">+1 Run</button>
+                <button class="sub-btn" onclick="adjustState('awayRuns', -1)">-1 Run</button>
             </div>
         </div>
 
         <!-- Section: Home Runs -->
         <div class="panel-section">
-            <h3 style="color: #3399ff;">Home Team Runs</h3>
+            <h3>Home Team Runs</h3>
             <div class="btn-row">
-                <button class="plus-run" onclick="adjustRuns('homeRuns', 1)">+1 Run</button>
-                <button class="sub-btn" onclick="adjustRuns('homeRuns', -1)">-1 Run</button>
+                <button class="plus-run" onclick="adjustState('homeRuns', 1)">+1 Run</button>
+                <button class="sub-btn" onclick="adjustState('homeRuns', -1)">-1 Run</button>
+            </div>
+        </div>
+
+        <!-- Section: At Bat Trackers -->
+        <div class="panel-section">
+            <h3>At Bat Trackers</h3>
+            <div class="btn-row">
+                <button class="plus-ball" onclick="adjustState('balls', 1)">+1 Ball</button>
+                <button class="plus-strike" onclick="adjustState('strikes', 1)">+1 Strike</button>
+            </div>
+            <div class="btn-row">
+                <button class="sub-btn" onclick="adjustState('balls', -1)">-1 Ball</button>
+                <button class="sub-btn" onclick="adjustState('strikes', -1)">-1 Strike</button>
+                <button class="clear-btn" onclick="clearCount()">Clear Count</button>
+            </div>
+        </div>
+
+        <!-- Section: Inning Outs -->
+        <div class="panel-section">
+            <h3>Inning Outs</h3>
+            <div class="btn-row">
+                <button class="plus-out" onclick="adjustState('outs', 1)">+1 Out</button>
+                <button class="sub-btn" onclick="adjustState('outs', -1)">-1 Out</button>
             </div>
         </div>
 
@@ -175,10 +254,13 @@
 
     <!-- 3. THE SCRIPT ENGINE -->
     <script>
-        // Separate Data Model tracking only runs
+        // Expanded Data Model built cleanly on top of the runs tracker state
         let scoreState = {
             awayRuns: 0,
-            homeRuns: 0
+            homeRuns: 0,
+            balls: 0,
+            strikes: 0,
+            outs: 0
         };
 
         // Standard team name sync
@@ -189,21 +271,24 @@
             document.getElementById('bugHome').innerText = homeVal || 'HOME';
         }
 
-        // Dedicated runs adjusting function
-        function adjustRuns(field, value) {
+        // Unified adjusting function to process all parameters safely
+        function adjustState(field, value) {
             scoreState[field] = Math.max(0, scoreState[field] + value);
+
+            // Softball Rule Automations:
+            if (field === 'outs' && scoreState.outs >= 3) {
+                scoreState.outs = 0;
+                scoreState.balls = 0;
+                scoreState.strikes = 0;
+            }
+            if (field === 'balls' && scoreState.balls >= 4) {
+                scoreState.balls = 0;
+            }
+            if (field === 'strikes' && scoreState.strikes >= 3) {
+                scoreState.strikes = 0;
+            }
+
             renderDisplay();
         }
 
-        // Pushes property data into view
-        function renderDisplay() {
-            document.getElementById('dispAwayRuns').innerText = scoreState.awayRuns;
-            document.getElementById('dispHomeRuns').innerText = scoreState.homeRuns;
-        }
-
-        // Initial launch pass
-        renderDisplay();
-    </script>
-
-</body>
-</html>
+        // Manual Clear Count helper
