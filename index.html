@@ -224,8 +224,8 @@ color: #000;
     <div class="ctrl-row">
         <span class="ctrl-label">Away Score</span>
         <div class="ctrl-group">
-            <button onclick="modScore('away', -1)">-</button>
-            <button onclick="modScore('away', 1)">+</button>
+            <button id="btn-away-minus">-</button>
+            <button id="btn-away-plus">+</button>
         </div>
     </div>
     <div class="ctrl-row">
@@ -235,92 +235,85 @@ color: #000;
     <div class="ctrl-row">
         <span class="ctrl-label">Home Score</span>
         <div class="ctrl-group">
-            <button onclick="modScore('home', -1)">-</button>
-            <button onclick="modScore('home', 1)">+</button>
+            <button id="btn-home-minus">-</button>
+            <button id="btn-home-plus">+</button>
         </div>
     </div>
     <div class="ctrl-row">
         <span class="ctrl-label">Inning Frame</span>
         <div class="ctrl-group">
-            <button id="btn-top" class="btn-active" onclick="setHalfInning(true)">Top ▲</button>
-            <button id="btn-bot" onclick="setHalfInning(false)">Bot ▼</button>
+            <button id="btn-top" class="btn-active">Top ▲</button>
+            <button id="btn-bot">Bot ▼</button>
         </div>
     </div>
     <div class="ctrl-row">
         <span class="ctrl-label">Inning Number</span>
         <div class="ctrl-group">
-            <button onclick="modInning(-1)">-</button>
-            <button onclick="modInning(1)">+</button>
+            <button id="btn-inn-minus">-</button>
+            <button id="btn-inn-plus">+</button>
         </div>
     </div>
     <div class="ctrl-row">
         <span class="ctrl-label">Count Tracking</span>
         <div class="ctrl-group">
-            <button onclick="modCount('b', 1)">+Ball</button>
-            <button onclick="modCount('s', 1)">+Strike</button>
-            <button onclick="modCount('o', 1)">+Out</button>
-            <button onclick="clearCount()" style="background-color: #bd1f36;">Reset</button>
+            <button id="btn-count-b">+Ball</button>
+            <button id="btn-count-s">+Strike</button>
+            <button id="btn-count-o">+Out</button>
+            <button id="btn-count-reset" style="background-color: #bd1f36;">Reset</button>
         </div>
     </div>
     <div class="ctrl-row">
         <span class="ctrl-label">Base Runners</span>
         <div class="ctrl-group">
-            <button id="btn-runner-1" onclick="toggleRunner(1)">1st</button>
-            <button id="btn-runner-2" onclick="toggleRunner(2)">2nd</button>
-            <button id="btn-runner-3" onclick="toggleRunner(3)">3rd</button>
+            <button id="btn-runner-1">1st</button>
+            <button id="btn-runner-2">2nd</button>
+            <button id="btn-runner-3">3rd</button>
         </div>
     </div>
 </div>
 
 <!-- COMPACT ENGINE LOGIC ARCHITECTURE -->
 <script>
-// State Management Core Engine
-const state = {
-    awayName: 'AWY',
-    homeName: 'HOM',
-    away: 0,
-    home: 0,
-    inning: 1,
-    isTop: true,
-    b: 0,
-    s: 0,
-    o: 0,
-    runners: { 1: false, 2: false, 3: false }
-};
+// Guard against early firing inside stream frames
+document.addEventListener("DOMContentLoaded", () => {
+    
+    // State Management Core Engine
+    const state = {
+        awayName: 'AWY',
+        homeName: 'HOM',
+        away: 0,
+        home: 0,
+        inning: 1,
+        isTop: true,
+        b: 0,
+        s: 0,
+        o: 0,
+        runners: { 1: false, 2: false, 3: false }
+    };
 
-// Element Cache Layer
-const dom = {
-    awayName: document.getElementById('disp-away-name'),
-    homeName: document.getElementById('disp-home-name'),
-    awayScore: document.getElementById('disp-away-score'),
-    homeScore: document.getElementById('disp-home-score'),
-    inningNum: document.getElementById('disp-inning-num'),
-    inningArrow: document.getElementById('disp-inning-arrow'),
-    inputAway: document.getElementById('ctrl-away-name'),
-    inputHome: document.getElementById('ctrl-home-name'),
-    btnTop: document.getElementById('btn-top'),
-    btnBot: document.getElementById('btn-bot'),
-    runnerBtns: {
-        1: document.getElementById('btn-runner-1'),
-        2: document.getElementById('btn-runner-2'),
-        3: document.getElementById('btn-runner-3')
-    }
-};
+    // Element Cache Layer
+    const dom = {
+        awayName: document.getElementById('disp-away-name'),
+        homeName: document.getElementById('disp-home-name'),
+        awayScore: document.getElementById('disp-away-score'),
+        homeScore: document.getElementById('disp-home-score'),
+        inningNum: document.getElementById('disp-inning-num'),
+        inningArrow: document.getElementById('disp-inning-arrow'),
+        inputAway: document.getElementById('ctrl-away-name'),
+        inputHome: document.getElementById('ctrl-home-name'),
+        btnTop: document.getElementById('btn-top'),
+        btnBot: document.getElementById('btn-bot'),
+        runnerBtns: {
+            1: document.getElementById('btn-runner-1'),
+            2: document.getElementById('btn-runner-2'),
+            3: document.getElementById('btn-runner-3')
+        }
+    };
 
-// Local DOM Input Listener Bindings
-dom.inputAway.addEventListener('input', (e) => { state.awayName = e.target.value.toUpperCase(); render(); });
-dom.inputHome.addEventListener('input', (e) => { state.homeName = e.target.value.toUpperCase(); render(); });
+    // Event Listener Implementation Structure
+    dom.inputAway.addEventListener('input', (e) => { state.awayName = e.target.value.toUpperCase(); render(); });
+    dom.inputHome.addEventListener('input', (e) => { state.homeName = e.target.value.toUpperCase(); render(); });
 
-function modScore(team, val) {
-    state[team] = Math.max(0, state[team] + val);
-    render();
-}
-
-function modInning(val) {
-    state.inning = Math.max(1, state.inning + val);
-    render();
-}
-
-function setHalfInning(isTop) {
-    state.isTop = isTop;
-    dom.btnTop.classList.toggle('btn-active', isTop);
+    document.getElementById('btn-away-minus').addEventListener('click', () => modScore('away', -1));
+    document.getElementById('btn-away-plus').addEventListener('click', () => modScore('away', 1));
+    document.getElementById('btn-home-minus').addEventListener('click', () => modScore('home', -1));
