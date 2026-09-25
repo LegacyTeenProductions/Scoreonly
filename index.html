@@ -1,293 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Standalone Score & Count Tracker</title>
-    <style>
-        /* --- CORE STANDALONE IPAD OPTIMIZATIONS --- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-user-select: none;
-            user-select: none;
-            touch-action: manipulation;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Massive Square Scorebug & Controller Overlay</title>
+<style>
+/* Base Viewport Canvas - Centers the layout panels */
+html, body {
+background-color: #1a1a1a;
+margin: 0; padding: 0;
+font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+font-weight: 800; color: #ffffff;
+user-select: none; 
+width: 100vw; 
+height: 100vh; 
+overflow: hidden;
+display: flex;
+align-items: center;
+justify-content: space-around;
+box-sizing: border-box;
+}
 
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            padding: 20px;
-            text-align: center;
-        }
+*, *:before, *:after {
+box-sizing: border-box;
+}
 
-        /* --- 1. THE SCOREBUG VISUAL BOX --- */
-        .scorebug-display {
-            background-color: #1e1e1e;
-            border: 2px solid #333;
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 450px;
-            margin: 0 auto 20px auto;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
+/* Massive Square Container Box - Normalized Layout Math */
+.scorebug-container {
+display: flex;
+flex-direction: column; 
+background-color: #0b0c10;
+border-radius: 4vh;
+box-shadow: 0 4vh 10vh rgba(0,0,0,0.8);
+width: 90vh; 
+height: 90vh; 
+overflow: hidden;
+border: 1.5vh solid #1f2833;
+}
 
-        .team-line {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 10px 0;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #bugAway { color: #ff4d4d; }
-        #bugHome { color: #3399ff; }
+/* Team Row Element Layouts */
+.team-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+height: 27.5vh; 
+border-bottom: 1vh solid #2d323f;
+}
+.team-title {
+padding: 0 6vh;
+font-size: 11vh; 
+letter-spacing: 0.5vh;
+height: 100%;
+display: flex;
+align-items: center;
+flex-grow: 1;
+font-weight: 900;
+text-shadow: 0 0.5vh 1vh rgba(0,0,0,0.5);
+}
+.away-team .team-title { background-color: #FFD700; color: #000000; } 
+.home-team .team-title { background-color: #FF0000; color: #ffffff; } 
 
-        .run-digit {
-            font-family: 'Impact', 'Arial Black', sans-serif;
-            font-size: 32px;
-            color: #ffcc00;
-            background-color: #000;
-            padding: 2px 12px;
-            border-radius: 6px;
-            border: 1px solid #2d2d2d;
-            min-width: 55px;
-            text-align: center;
-        }
+.score-val {
+background-color: #1f232b;
+font-size: 14vh; 
+width: 28vh;
+height: 100%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-weight: 900;
+border-left: 1vh solid #2d323f;
+}
 
-        /* Safe 3-column data row added safely below team entries */
-        .data-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            border-top: 1px solid #333;
-            padding-top: 15px;
-            margin-top: 15px;
-        }
+/* Bottom Game Stats Data Bar */
+.status-row {
+display: flex;
+align-items: center;
+height: 32vh;
+background-color: #151922;
+}
 
-        .data-box {
-            background-color: #181818;
-            border: 1px solid #2d2d2d;
-            border-radius: 8px;
-            padding: 8px 4px;
-        }
+.data-segment {
+display: flex;
+align-items: center;
+justify-content: center;
+height: 100%;
+flex: 1;
+}
+.data-segment:not(:last-child) {
+border-right: 1vh solid #2d323f;
+}
 
-        .data-label {
-            font-size: 11px;
-            color: #aaa;
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
+/* Inning layouts */
+.arrow-indicator { font-size: 7vh; margin-right: 1.5vh; color: #fca311; line-height: 1; }
+.inning-num { font-size: 11vh; font-weight: 900; line-height: 1; }
 
-        .data-value {
-            font-size: 26px;
-            font-weight: bold;
-            color: #ffcc00;
-            font-family: 'Impact', 'Arial Black', sans-serif;
-        }
+/* Diamond Runners Mapping */
+.diamond-wrap { position: relative; width: 14vh; height: 14vh; transform: rotate(45deg); }
+.base-pad { position: absolute; width: 5.5vh; height: 5.5vh; background-color: #454d5a; border: 0.8vh solid #151922; border-radius: 0.5vh; }
+.base-pad.b-1 { top: 0; right: 0; }
+.base-pad.b-2 { top: 0; left: 0; }
+.base-pad.b-3 { bottom: 0; left: 0; }
+.base-pad.occupied { background-color: #fca311; box-shadow: 0 0 4vh #fca311; }
 
+/* BSO Count Tracking Matrix Layout */
+.matrix-column { display: flex; flex-direction: column; gap: 1.5vh; font-size: 3.5vh; color: #8d99ae; }
+.matrix-row { display: flex; align-items: center; }
+.row-header { width: 4vh; font-size: 4vh; font-weight: bold; text-align: center; }
+.dot-grid { display: flex; gap: 1.5vh; margin-left: 2vh; }
+.indicator-dot { width: 3.5vh; height: 3.5vh; border-radius: 50%; background-color: #3d4554; }
+.indicator-dot.b-active { background-color: #00f5d4; }
+.indicator-dot.s-active { background-color: #ff5400; }
+.indicator-dot.o-active { background-color: #fca311; }
 
-        /* --- 2. THE CONTROL PANEL CONTAINER --- */
-        .control-panel {
-            background-color: #222;
-            border: 1px solid #444;
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 450px;
-            margin: 0 auto;
-        }
-
-        .panel-section {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .panel-section h3 {
-            font-size: 13px;
-            color: #aaa;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 4px;
-        }
-
-        /* Name Inputs */
-        input {
-            width: 100%;
-            background-color: #333;
-            border: 1px solid #555;
-            color: white;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            font-weight: bold;
-            -webkit-user-select: text;
-            user-select: text;
-        }
-
-        /* Large Touch Buttons Grid */
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        button {
-            background: #3e3e3e;
-            color: white;
-            border: none;
-            padding: 18px 10px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            flex: 1;
-            box-shadow: 0 4px 0 #1a1a1a;
-        }
-        button:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 0 #1a1a1a;
-        }
-
-        button.plus-run { background: #2e7d32; box-shadow: 0 4px 0 #1b5e20; }
-        button.plus-run:active { box-shadow: 0 2px 0 #1b5e20; }
-        button.plus-ball { background: #5e35b1; box-shadow: 0 4px 0 #4527a0; }
-        button.plus-ball:active { box-shadow: 0 2px 0 #4527a0; }
-        button.plus-strike { background: #1565c0; box-shadow: 0 4px 0 #0d47a1; }
-        button.plus-strike:active { box-shadow: 0 2px 0 #0d47a1; }
-        button.plus-out { background: #ef6c00; box-shadow: 0 4px 0 #b30000; }
-        button.plus-out:active { box-shadow: 0 2px 0 #b30000; }
-        button.sub-btn { background: #c62828; box-shadow: 0 4px 0 #8e1c1c; padding: 12px 10px; font-size: 14px;}
-        button.sub-btn:active { box-shadow: 0 2px 0 #8e1c1c; }
-        button.clear-btn { background: #4f5b66; box-shadow: 0 4px 0 #343d46; padding: 12px 10px; font-size: 14px;}
-        button.clear-btn:active { box-shadow: 0 2px 0 #343d46; }
-    </style>
+/* Controller Sidebar Configuration Panel */
+.controller-panel {
+width: 45vw;
+height: 90vh;
+background-color: #112233;
+border: 1vh solid #1f2833;
+border-radius: 4vh;
+padding: 4vh;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+box-shadow: 0 4vh 10vh rgba(0,0,0,0.8);
+}
+.ctrl-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 2vh;
+}
+.ctrl-label {
+font-size: 3.5vh;
+color: #00f5d4;
+}
+.ctrl-group {
+display: flex;
+gap: 1.5vh;
+}
+input[type="text"] {
+background-color: #1f232b;
+border: 0.5vh solid #454d5a;
+color: #fff;
+font-size: 3.5vh;
+padding: 1vh;
+width: 25vh;
+border-radius: 1vh;
+text-align: center;
+font-weight: bold;
+}
+button {
+background-color: #454d5a;
+border: none;
+color: white;
+font-size: 4vh;
+font-weight: bold;
+padding: 1vh 3vh;
+border-radius: 1vh;
+cursor: pointer;
+min-width: 8vh;
+}
+button:active {
+background-color: #00f5d4;
+color: #000;
+}
+.btn-active {
+background-color: #fca311;
+color: #000;
+}
+</style>
 </head>
 <body>
 
-    <!-- 1. THE SCOREBUG VISUAL BOX -->
-    <div class="scorebug-display">
-        <div class="team-line" style="color: #ff4d4d;">
-            <span>AWAY: <span id="bugAway">TEAM A</span></span>
-            <span class="run-digit" id="dispAwayRuns">0</span>
+<!-- Left Panel: Target Scorebug Output View -->
+<div class="scorebug-container">
+    <div class="team-row away-team">
+        <div class="team-title" id="disp-away-name">AWY</div>
+        <div class="score-val" id="disp-away-score">0</div>
+    </div>
+    <div class="team-row home-team">
+        <div class="team-title" id="disp-home-name">HOM</div>
+        <div class="score-val" id="disp-home-score">0</div>
+    </div>
+    <div class="status-row">
+        <div class="data-segment">
+            <span class="arrow-indicator" id="disp-inning-arrow">▲</span>
+            <span class="inning-num" id="disp-inning-num">1</span>
         </div>
-        <div class="team-line" style="color: #3399ff;">
-            <span>HOME: <span id="bugHome">TEAM B</span></span>
-            <span class="run-digit" id="dispHomeRuns">0</span>
+        <div class="data-segment">
+            <div class="diamond-wrap">
+                <div class="base-pad b-2" id="disp-base-2"></div>
+                <div class="base-pad b-1" id="disp-base-1"></div>
+                <div class="base-pad b-3" id="disp-base-3"></div>
+            </div>
         </div>
-
-        <div class="data-row">
-            <div class="data-box">
-                <div class="data-label">Balls</div>
-                <div class="data-value" id="dispBalls">0</div>
-            </div>
-            <div class="data-box">
-                <div class="data-label">Strikes</div>
-                <div class="data-value" id="dispStrikes">0</div>
-            </div>
-            <div class="data-box">
-                <div class="data-label">Outs</div>
-                <div class="data-value" id="dispOuts">0</div>
+        <div class="data-segment">
+            <div class="matrix-column">
+                <div class="matrix-row">
+                    <span class="row-header">B</span>
+                    <div class="dot-grid"><div class="indicator-dot" id="dot-b1"></div><div class="indicator-dot" id="dot-b2"></div><div class="indicator-dot" id="dot-b3"></div></div>
+                </div>
+                <div class="matrix-row">
+                    <span class="row-header">S</span>
+                    <div class="dot-grid"><div class="indicator-dot" id="dot-s1"></div><div class="indicator-dot" id="dot-s2"></div></div>
+                </div>
+                <div class="matrix-row">
+                    <span class="row-header">O</span>
+                    <div class="dot-grid"><div class="indicator-dot" id="dot-o1"></div><div class="indicator-dot" id="dot-o2"></div></div>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- 2. THE CONTROL PANEL -->
-    <div class="control-panel">
-        
-        <!-- Section: Team Names -->
-        <div class="panel-section">
-            <h3>Team Names</h3>
-            <input type="text" id="inputAway" value="TEAM A" oninput="updateNames()" placeholder="Away Name...">
-            <input type="text" id="inputHome" value="TEAM B" oninput="updateNames()" placeholder="Home Name...">
-        </div>
-
-        <!-- Section: Away Runs -->
-        <div class="panel-section">
-            <h3 style="color: #ff4d4d;">Away Team Runs</h3>
-            <div class="btn-row">
-                <button class="plus-run" onclick="adjustRuns('awayRuns', 1)">+1 Run</button>
-                <button class="sub-btn" onclick="adjustRuns('awayRuns', -1)">-1 Run</button>
-            </div>
-        </div>
-
-        <!-- Section: Home Runs -->
-        <div class="panel-section">
-            <h3>Home Team Runs</h3>
-            <div class="btn-row">
-                <button class="plus-run" onclick="adjustRuns('homeRuns', 1)">+1 Run</button>
-                <button class="sub-btn" onclick="adjustRuns('homeRuns', -1)">-1 Run</button>
-            </div>
-        </div>
-
-        <!-- Section: At Bat Trackers -->
-        <div class="panel-section">
-            <h3>At Bat Trackers</h3>
-            <div class="btn-row">
-                <button class="plus-ball" onclick="adjustPitch('balls', 1)">+1 Ball</button>
-                <button class="plus-strike" onclick="adjustPitch('strikes', 1)">+1 Strike</button>
-            </div>
-            <div class="btn-row">
-                <button class="sub-btn" onclick="adjustPitch('balls', -1)">-1 Ball</button>
-                <button class="sub-btn" onclick="adjustPitch('strikes', -1)">-1 Strike</button>
-                <button class="clear-btn" onclick="clearCount()">Clear Count</button>
-            </div>
-        </div>
-
-        <!-- Section: Inning Outs -->
-        <div class="panel-section">
-            <h3>Inning Outs</h3>
-            <div class="btn-row">
-                <button class="plus-out" onclick="adjustPitch('outs', 1)">+1 Out</button>
-                <button class="sub-btn" onclick="adjustPitch('outs', -1)">-1 Out</button>
-            </div>
-        </div>
-
+<!-- Right Panel: State Engine Controller Layout -->
+<div class="controller-panel">
+    <div class="ctrl-row">
+        <span class="ctrl-label">Away Team Name</span>
+        <input type="text" id="ctrl-away-name" value="AWY" maxlength="3">
     </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Away Score</span>
+        <div class="ctrl-group">
+            <button onclick="modScore('away', -1)">-</button>
+            <button onclick="modScore('away', 1)">+</button>
+        </div>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Home Team Name</span>
+        <input type="text" id="ctrl-home-name" value="HOM" maxlength="3">
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Home Score</span>
+        <div class="ctrl-group">
+            <button onclick="modScore('home', -1)">-</button>
+            <button onclick="modScore('home', 1)">+</button>
+        </div>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Inning Frame</span>
+        <div class="ctrl-group">
+            <button id="btn-top" class="btn-active" onclick="setHalfInning(true)">Top ▲</button>
+            <button id="btn-bot" onclick="setHalfInning(false)">Bot ▼</button>
+        </div>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Inning Number</span>
+        <div class="ctrl-group">
+            <button onclick="modInning(-1)">-</button>
+            <button onclick="modInning(1)">+</button>
+        </div>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Count Tracking</span>
+        <div class="ctrl-group">
+            <button onclick="modCount('b', 1)">+Ball</button>
+            <button onclick="modCount('s', 1)">+Strike</button>
+            <button onclick="modCount('o', 1)">+Out</button>
+            <button onclick="clearCount()" style="background-color: #bd1f36;">Reset</button>
+        </div>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Base Runners</span>
+        <div class="ctrl-group">
+            <button id="btn-runner-1" onclick="toggleRunner(1)">1st</button>
+            <button id="btn-runner-2" onclick="toggleRunner(2)">2nd</button>
+            <button id="btn-runner-3" onclick="toggleRunner(3)">3rd</button>
+        </div>
+    </div>
+</div>
 
-    <!-- 3. THE SCRIPT ENGINE -->
-    <script>
-        // Exact original working Runs tracker memory model core
-        let scoreState = {
-            awayRuns: 0,
-            homeRuns: 0
-        };
+<!-- COMPACT ENGINE LOGIC ARCHITECTURE -->
+<script>
+// State Management Core Engine
+const state = {
+    awayName: 'AWY',
+    homeName: 'HOM',
+    away: 0,
+    home: 0,
+    inning: 1,
+    isTop: true,
+    b: 0,
+    s: 0,
+    o: 0,
+    runners: { 1: false, 2: false, 3: false }
+};
 
-        // Separate, isolated memory tracking only count states
-        let countState = {
-            balls: 0,
-            strikes: 0,
-            outs: 0
-        };
+// Element Cache Layer
+const dom = {
+    awayName: document.getElementById('disp-away-name'),
+    homeName: document.getElementById('disp-home-name'),
+    awayScore: document.getElementById('disp-away-score'),
+    homeScore: document.getElementById('disp-home-score'),
+    inningNum: document.getElementById('disp-inning-num'),
+    inningArrow: document.getElementById('disp-inning-arrow'),
+    inputAway: document.getElementById('ctrl-away-name'),
+    inputHome: document.getElementById('ctrl-home-name'),
+    btnTop: document.getElementById('btn-top'),
+    btnBot: document.getElementById('btn-bot'),
+    runnerBtns: {
+        1: document.getElementById('btn-runner-1'),
+        2: document.getElementById('btn-runner-2'),
+        3: document.getElementById('btn-runner-3')
+    }
+};
 
-        // Standard team name sync
-        function updateNames() {
-            const awayVal = document.getElementById('inputAway').value;
-            const homeVal = document.getElementById('inputHome').value;
-            document.getElementById('bugAway').innerText = awayVal || 'AWAY';
-            document.getElementById('bugHome').innerText = homeVal || 'HOME';
-        }
+// Local DOM Input Listener Bindings
+dom.inputAway.addEventListener('input', (e) => { state.awayName = e.target.value.toUpperCase(); render(); });
+dom.inputHome.addEventListener('input', (e) => { state.homeName = e.target.value.toUpperCase(); render(); });
 
-        // Your exact, 100% verified working run scoring function
-        function adjustRuns(field, value) {
-            scoreState[field] = Math.max(0, scoreState[field] + value);
-            renderDisplay();
-        }
+function modScore(team, val) {
+    state[team] = Math.max(0, state[team] + val);
+    render();
+}
 
-        // Completely separate tracking loop dedicated only to pitches
-        function adjustPitch(field, value) {
-            countState[field] = Math.max(0, countState[field] + value);
+function modInning(val) {
+    state.inning = Math.max(1, state.inning + val);
+    render();
+}
 
-            // Softball Automated Rules Checking:
-            if (field === 'outs' && countState.outs >= 3) {
-                countState.outs = 0;
-                countState.balls = 0;
-                countState.strikes = 0;
-            }
-            if (field === 'balls' && countState.balls >= 4) {
+function setHalfInning(isTop) {
+    state.isTop = isTop;
+    dom.btnTop.classList.toggle('btn-active', isTop);
